@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 // Tipo helper para requerir la propiedad id
 export interface Identifiable {
@@ -17,11 +17,38 @@ interface DataTableProps<T extends Identifiable> {
 }
 
 export function DataTable<T extends Identifiable>({ data, columns, onEdit }: DataTableProps<T>) {
+  // Manejo del estado de ordenamiento
+  const [sortConfig, setSortConfig] = useState<{ key: keyof T; direction: 'asc' | 'desc' } | null>(null);
+
   // Manejo del estado del id que está en edición actualmente
   const [editingId, setEditingId] = useState<string | number | null>(null);
   
-  // Usamos Partial<T> para poder modificar la fila paso a paso sin causar errores en campos no presentes temporalmente
+  // Usamos Partial<T> para poder modificar la fila sin errores en campos faltantes temporalmente
   const [editState, setEditState] = useState<Partial<T>>({});
+
+  const sortedData = useMemo(() => {
+    let sortableItems = [...data];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [data, sortConfig]);
+
+  const requestSort = (key: keyof T) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
 
   const handleEditClick = (item: T) => {
     setEditingId(item.id);
@@ -53,15 +80,19 @@ export function DataTable<T extends Identifiable>({ data, columns, onEdit }: Dat
       <thead>
         <tr>
           {columns.map(col => (
-            <th key={String(col.key)} style={{ padding: '8px' }}>
-              {col.header}
+            <th 
+              key={String(col.key)} 
+              onClick={() => requestSort(col.key)}
+              style={{ padding: '8px', cursor: 'pointer', userSelect: 'none' }}
+            >
+              {col.header} {sortConfig?.key === col.key ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
             </th>
           ))}
           <th style={{ padding: '8px' }}>Acciones</th>
         </tr>
       </thead>
       <tbody>
-        {data.map(item => {
+        {sortedData.map(item => {
           const isEditing = editingId === item.id;
           
           return (
@@ -99,7 +130,7 @@ export function DataTable<T extends Identifiable>({ data, columns, onEdit }: Dat
             </tr>
           );
         })}
-        {data.length === 0 && (
+        {sortedData.length === 0 && (
           <tr>
             <td colSpan={columns.length + 1} style={{ textAlign: 'center', padding: '16px' }}>
               No hay datos disponibles
