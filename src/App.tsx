@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { DataTable } from './components/DataTable'
 import { calcularDiferenciaDias } from './utils/date-utils'
 

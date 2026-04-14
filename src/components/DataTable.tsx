@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 
 // Tipo helper para requerir la propiedad id
 export interface Identifiable {
